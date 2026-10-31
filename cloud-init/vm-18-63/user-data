@@ -1,0 +1,59 @@
+#cloud-config
+# ЛБ-6, вариант N = 18, G = 63. Черников А. В., гр. 8ПМ63.
+# Первая строка обязательна: по ней cloud-init понимает, что это cloud-config (YAML), а не скрипт.
+# Отступы — 2 пробела, табуляция запрещена. Проверка внутри ВМ: sudo cloud-init schema --system --annotate
+
+# --- 1. Имя хоста (модули set_hostname, update_hostname, update_etc_hosts) ---
+hostname: vm-18-63
+manage_etc_hosts: true            # /etc/hosts генерируется: 127.0.1.1 vm-18-63
+
+# --- 2. Пользователь с ключом и правами администратора (модули users_groups, ssh) ---
+users:                            # без «- default» пользователь ubuntu из образа не создаётся
+  - name: stud-18
+    gecos: Chernikov Anton, LB-6
+    shell: /bin/bash
+    groups: [sudo, adm]           # sudo — администратор; adm — чтение /var/log без sudo
+    sudo: "ALL=(ALL) NOPASSWD:ALL"  # правило ляжет в /etc/sudoers.d/90-cloud-init-users
+    lock_passwd: true             # пароля нет: вход только по ключу
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA...REPLACE_WITH_~/.ssh/lab6_stud18.pub
+ssh_pwauth: false                 # sshd: PasswordAuthentication no
+disable_root: true                # вход root по SSH запрещён
+
+# --- 3. Сеть — в отдельном файле network-config того же seed-диска ---
+#     (NoCloud применяет его на стадии init-local, ещё до запуска сети)
+
+# --- 4. Пакеты (модуль package_update_upgrade_install, стадия final) ---
+package_update: true              # apt-get update перед установкой
+package_upgrade: false            # полное обновление не делаем: экономим время первого старта
+packages:
+  - qemu-guest-agent              # агент гипервизора: virsh domifaddr/domtime, fsfreeze для снапшотов
+  - tcpdump                       # ЛБ-3/ЛБ-4: трафик на интерфейсе ВМ
+  - traceroute                    # ЛБ-4: путь ВМ → NAT хоста → интернет
+
+# Если apt качает медленно, раскомментировать (зеркало Яндекса):
+# apt:
+#   primary:
+#     - arches: [default]
+#       uri: http://mirror.yandex.ru/ubuntu/
+
+# --- 5. Файл-маркер (модуль write_files, стадия init: раньше users_groups, поэтому владелец root) ---
+write_files:
+  - path: /etc/lab6-owner
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ФИО:     Черников Антон Васильевич
+      Группа:  8ПМ63
+      Вариант: N=18, G=63
+      ВМ:      vm-18-63, 10.97.2.118/27
+
+# --- Команды последней стадии (модуль runcmd пишет скрипт, scripts_user выполняет его в final) ---
+runcmd:
+  # дата: реальный момент первого старта (в write_files дату вычислить нельзя)
+  - [sh, -c, 'echo "Дата первого старта: $(date "+%F %T %Z")" >> /etc/lab6-owner']
+  # агент ставится уже после загрузки; unit статический и стартует от udev, поэтому запускаем сами
+  - [systemctl, start, qemu-guest-agent]
+
+# сообщение в консоль ВМ (virsh console) и в /var/log/cloud-init-output.log по окончании
+final_message: "vm-18-63: cloud-init $VERSION finished, uptime $UPTIME s"

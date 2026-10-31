@@ -1,0 +1,16 @@
+# Клон: тот же блок 10.97.2.96/27, следующий адрес .119 (вписан в план, PLAN.md раздел 0).
+version: 2
+ethernets:
+  lan0:
+    match:
+      name: "en*"
+    dhcp4: false
+    dhcp6: false
+    addresses:
+      - 10.97.2.119/27
+    routes:
+      - to: default
+        via: 10.97.2.97
+    nameservers:
+      addresses: [10.97.2.97]
+      search: [lab6.lb18.test]

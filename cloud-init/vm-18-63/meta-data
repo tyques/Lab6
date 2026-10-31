@@ -1,0 +1,4 @@
+# NoCloud meta-data. instance-id — «паспорт» экземпляра: пока он не меняется, cloud-init считает
+# ВМ той же самой и per-instance модули (users, write_files, packages, runcmd…) повторно не выполняет.
+instance-id: vm-18-63-v1
+local-hostname: vm-18-63

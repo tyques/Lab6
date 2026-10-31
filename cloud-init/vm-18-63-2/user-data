@@ -1,0 +1,26 @@
+#cloud-config
+# Клон из шаблона tpl-vm-18-63 (часть В). Тяжёлое — ОС, пакеты, пользователь, маркер — уже «заморожено»
+# в шаблоне. Здесь только то, что у каждого экземпляра своё.
+
+hostname: vm-18-63-2
+manage_etc_hosts: true
+
+users:
+  - name: stud-18                 # пользователь уже есть в шаблоне: cloud-init не создаёт его заново,
+    gecos: Chernikov Anton, LB-6  # но проверяет ключ и правило sudo
+    shell: /bin/bash
+    groups: [sudo, adm]
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA...REPLACE_WITH_~/.ssh/lab6_stud18.pub
+ssh_pwauth: false
+disable_root: true
+
+# пакетов нет: они в шаблоне, поэтому apt при развёртывании не работает — отсюда выигрыш во времени
+
+runcmd:
+  # маркер унаследован от vm-18-63; дописываем, что это клон и когда он стартовал
+  - [sh, -c, 'echo "Клон vm-18-63-2 (10.97.2.119) из шаблона, первый старт: $(date "+%F %T %Z")" >> /etc/lab6-owner']
+
+final_message: "vm-18-63-2: cloud-init $VERSION finished, uptime $UPTIME s"

@@ -1,0 +1,28 @@
+<!--
+  Сеть ЛБ-6: блок 10.97.2.96/27 из свободного диапазона плана ЛБ-3 (P = 97).
+  virsh net-define libvirt/lab6-net.xml && virsh net-start lab6 && virsh net-autostart lab6
+-->
+<network>
+  <name>lab6</name>
+
+  <!-- NAT: при старте сети libvirt включает net.ipv4.ip_forward и добавляет на хосте
+       MASQUERADE для 10.97.2.96/27 (iptables или nftables — зависит от версии libvirt) -->
+  <forward mode='nat'/>
+
+  <!-- мост на хосте; tap-интерфейсы ВМ (vnet0, vnet1, …) включаются в него -->
+  <bridge name='virbr-lab6' stp='on' delay='0'/>
+
+  <!-- dnsmasq libvirt: DNS на адресе шлюза. Домен + host-записи — чтобы ВМ находили друг друга
+       по имени (в network-config ВМ задан search: lab6.lb18.test) -->
+  <domain name='lab6.lb18.test' localOnly='yes'/>
+  <dns>
+    <host ip='10.97.2.118'><hostname>vm-18-63</hostname></host>
+    <host ip='10.97.2.119'><hostname>vm-18-63-2</hostname></host>
+    <host ip='10.97.2.120'><hostname>svc-18-63-1</hostname></host>
+    <host ip='10.97.2.121'><hostname>svc-18-63-2</hostname></host>
+  </dns>
+
+  <!-- адрес хоста в этой сети = шлюз ВМ (первый usable, как во всех подсетях ЛБ-3).
+       DHCP намеренно не включён: адрес у ВМ может появиться только из cloud-init network-config -->
+  <ip address='10.97.2.97' netmask='255.255.255.224'/>
+</network>

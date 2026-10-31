@@ -1,0 +1,18 @@
+# Сетевая конфигурация NoCloud, формат v2 (это синтаксис netplan). cloud-init применяет её на стадии
+# init-local, до запуска сети, и записывает в /etc/netplan/50-cloud-init.yaml.
+# План ЛБ-3: свободный блок 10.97.2.96/27; .97 — шлюз (мост virbr-lab6 хоста), .118 = 100 + N — эта ВМ.
+version: 2
+ethernets:
+  lan0:                       # условное имя; реальный интерфейс выбирается по match
+    match:
+      name: "en*"             # virtio-net на машине q35 называется enp1s0; шаблон переживёт и смену шины
+    dhcp4: false
+    dhcp6: false
+    addresses:
+      - 10.97.2.118/27
+    routes:
+      - to: default
+        via: 10.97.2.97       # виртуальный роутер libvirt: NAT наружу через хост
+    nameservers:
+      addresses: [10.97.2.97] # dnsmasq libvirt на том же мосту; пересылает запросы резолверу хоста
+      search: [lab6.lb18.test]
